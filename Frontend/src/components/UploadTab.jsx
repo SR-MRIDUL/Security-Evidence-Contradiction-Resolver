@@ -15,7 +15,21 @@ export default function UploadTab({ onAddEvidence }) {
     try {
       let finalContent = content.trim();
       let finalTitle = title.trim();
+      // Validate File Extension
+  const allowedExtensions = [".log", ".txt", ".json"];
 
+    if (file) {
+  const fileName = file.name.toLowerCase();
+
+  const isValidFile = allowedExtensions.some((ext) =>
+      fileName.endsWith(ext)
+      );
+
+      if (!isValidFile) {
+       alert("Invalid file type! Only .log, .txt, and .json files are allowed.");
+      return;
+    }
+}
       // Read Uploaded File
       if (file) {
         finalContent = await file.text();
