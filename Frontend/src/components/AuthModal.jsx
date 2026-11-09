@@ -69,8 +69,14 @@ export default function AuthModal({
     e.preventDefault();
     setRegErr("");
 
-    if (!regUser.trim() || !regEmail.trim() || !regPass) {
-      setRegErr("All fields are required.");
+    if (!regUser.trim() || !regEmail.trim() || !regPass.trim()) {
+      setRegErr("Error: Input fields cannot be left empty.");
+      return;
+    }
+
+    // Email Validation
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail.trim())) {
+      setRegErr("Error: Please enter a valid email address.");
       return;
     }
 
@@ -130,9 +136,7 @@ export default function AuthModal({
         <div className="auth-tabs">
           <button
             type="button"
-            className={`auth-tab-btn ${
-              isLoginTab ? "active" : ""
-            }`}
+            className={`auth-tab-btn ${isLoginTab ? "active" : ""}`}
             onClick={() => switchTab(true)}
           >
             Login
@@ -140,9 +144,7 @@ export default function AuthModal({
 
           <button
             type="button"
-            className={`auth-tab-btn ${
-              !isLoginTab ? "active" : ""
-            }`}
+            className={`auth-tab-btn ${!isLoginTab ? "active" : ""}`}
             onClick={() => switchTab(false)}
           >
             Register
