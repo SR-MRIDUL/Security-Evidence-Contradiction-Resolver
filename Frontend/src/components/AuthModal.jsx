@@ -84,7 +84,7 @@ export default function AuthModal({
   };
 
   // Register Handler
-  const handleRegSubmit = (e) => {
+   const handleRegSubmit = (e) => {
     e.preventDefault();
 
     if (
@@ -92,10 +92,13 @@ export default function AuthModal({
       !regEmail.trim() ||
       !regPass.trim()
     ) {
-      setRegErr("Error: Input fields cannot be left empty.");
+            setRegErr("Error: Input fields cannot be left empty.");
       return;
     }
-
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail.trim())) {
+      setRegErr("Error: Please enter a valid email address.");
+      return;
+    }
     if (regPass.length < 6) {
       setRegErr(
         "Error: Minimum password length is 6 characters."
