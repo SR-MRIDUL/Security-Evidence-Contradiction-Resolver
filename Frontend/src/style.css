@@ -785,3 +785,190 @@ button {
     color: #ffffff;
     box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
 }
+
+
+/* =========================================
+   EVIDENCERESOLVER AI - SIDEBAR LAYOUT
+   ========================================= */
+
+/* Main Application Layout */
+.app-layout {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+    background-color: var(--bg-main);
+}
+
+/* Left Sidebar */
+.sidebar-navbar {
+    width: 260px;
+    min-width: 260px;
+    min-height: 100vh;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    left: 0;
+    float: none;
+    flex-shrink: 0;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+
+    background-color: var(--bg-card);
+    border-right: 1px solid var(--border-color);
+    border-bottom: none;
+
+    padding: 25px 15px;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+/* Sidebar Logo */
+.sidebar-navbar .logo {
+    font-size: 1.15rem;
+    line-height: 1.5;
+    margin-bottom: 35px;
+    justify-content: flex-start;
+}
+
+/* Sidebar Navigation */
+.sidebar-navbar .nav-links {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 10px;
+}
+
+/* Navigation Buttons */
+.sidebar-navbar .nav-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+
+    text-align: left;
+    padding: 13px 15px;
+
+    font-size: 0.95rem;
+    border-radius: 8px;
+    white-space: normal;
+    line-height: 1.4;
+}
+
+/* Active Navigation */
+.sidebar-navbar .nav-btn.active {
+    background-color: var(--bg-input);
+    color: var(--accent-blue);
+    border-left: 3px solid var(--accent-blue);
+}
+
+/* Navigation Hover */
+.sidebar-navbar .nav-btn:hover {
+    background-color: var(--bg-input);
+    color: var(--accent-blue);
+}
+
+/* User Authentication Area */
+.sidebar-navbar .user-auth-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+    margin-top: auto;
+}
+
+/* User Badge */
+.sidebar-navbar .user-badge {
+    justify-content: center;
+    width: 100%;
+    flex-wrap: wrap;
+    word-break: break-word;
+}
+
+/* Login and Logout Buttons */
+.sidebar-navbar .auth-btn,
+.sidebar-navbar .logout-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 10px;
+}
+
+/* Right Side Main Content */
+.app-layout .main-container {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 35px 30px;
+    overflow-x: hidden;
+}
+
+/* =========================================
+   SIDEBAR RESPONSIVE DESIGN
+   ========================================= */
+
+/* Tablet */
+@media (max-width: 900px) {
+    .sidebar-navbar {
+        width: 230px;
+        min-width: 230px;
+        padding: 20px 12px;
+    }
+
+    .sidebar-navbar .logo {
+        font-size: 1rem;
+    }
+
+    .app-layout .main-container {
+        padding: 25px 18px;
+    }
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .app-layout {
+        flex-direction: column;
+    }
+
+    .sidebar-navbar {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: auto;
+        height: auto;
+        position: relative;
+        top: auto;
+
+        padding: 15px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-navbar .logo {
+        margin-bottom: 18px;
+    }
+
+    .sidebar-navbar .nav-links {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .sidebar-navbar .nav-btn {
+        padding: 11px 12px;
+    }
+
+    .sidebar-navbar .user-auth-zone {
+        margin-top: 15px !important;
+        padding-top: 15px !important;
+    }
+
+    .app-layout .main-container {
+        width: 100%;
+        padding: 20px 15px;
+    }
+}

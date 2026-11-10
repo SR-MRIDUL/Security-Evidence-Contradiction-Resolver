@@ -144,13 +144,17 @@ export default function App() {
 
   return (
     <div className="app-container">
+
       {!currentUser ? (
         <LandingPage
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onContinueGuest={handleGuestLogin}
         />
       ) : (
-        <>
+
+        /* Sidebar + Main Content Layout */
+        <div className="app-layout">
+
           <Navbar
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -160,6 +164,7 @@ export default function App() {
           />
 
           <main className="main-container">
+
             {apiError && (
               <div className="error-msg">
                 {apiError}
@@ -181,8 +186,10 @@ export default function App() {
             {activeTab === "timeline" && (
               <TimelineTab evidenceList={evidenceList} />
             )}
+
           </main>
-        </>
+
+        </div>
       )}
 
       <AuthModal
@@ -190,6 +197,7 @@ export default function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
       />
+
     </div>
   );
 }
