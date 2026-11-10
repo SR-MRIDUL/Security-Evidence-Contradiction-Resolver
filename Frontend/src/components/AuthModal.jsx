@@ -80,8 +80,8 @@ export default function AuthModal({
       return;
     }
 
-    if (regPass.length < 6) {
-      setRegErr("Minimum password length is 6 characters.");
+    if (regPass.length < 8) {
+      setRegErr("Minimum password length is 8 characters.");
       return;
     }
 
@@ -235,7 +235,7 @@ export default function AuthModal({
 
             <div className="form-group">
               <label htmlFor="reg-password">
-                Password (Min 6 chars)
+                Password (Min 8 chars)
               </label>
 
               <input
@@ -243,7 +243,7 @@ export default function AuthModal({
                 id="reg-password"
                 value={regPass}
                 onChange={(e) => setRegPass(e.target.value)}
-                minLength={6}
+                minLength={8}
                 required
               />
             </div>
