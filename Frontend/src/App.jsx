@@ -8,6 +8,14 @@ import DashboardTab from "./components/DashboardTab";
 import UploadTab from "./components/UploadTab";
 import TimelineTab from "./components/TimelineTab";
 
+// FR-30 to FR-35 Components
+import AuditTrail from "./components/AuditTrail";
+import SecureEvidence from "./components/SecureEvidence";
+import Notifications from "./components/Notifications";
+import CaseManagement from "./components/CaseManagement";
+import Analytics from "./components/Analytics";
+import EvidenceExport from "./components/EvidenceExport";
+
 import {
   getCurrentUser,
   getInvestigations,
@@ -175,6 +183,8 @@ export default function App() {
               <p>Loading data from database...</p>
             )}
 
+            {/* Existing Pages */}
+
             {activeTab === "dashboard" && (
               <DashboardTab evidenceList={evidenceList} />
             )}
@@ -185,6 +195,36 @@ export default function App() {
 
             {activeTab === "timeline" && (
               <TimelineTab evidenceList={evidenceList} />
+            )}
+
+            {/* FR-30: Audit Trail */}
+            {activeTab === "audit" && (
+              <AuditTrail />
+            )}
+
+            {/* FR-31: Secure Evidence Storage */}
+            {activeTab === "secure" && (
+              <SecureEvidence />
+            )}
+
+            {/* FR-32: Notifications */}
+            {activeTab === "notifications" && (
+              <Notifications />
+            )}
+
+            {/* FR-33: Case Management */}
+            {activeTab === "cases" && (
+              <CaseManagement />
+            )}
+
+            {/* FR-34: Analytics */}
+            {activeTab === "analytics" && (
+              <Analytics />
+            )}
+
+            {/* FR-35: Evidence Export */}
+            {activeTab === "export" && (
+              <EvidenceExport />
             )}
 
           </main>

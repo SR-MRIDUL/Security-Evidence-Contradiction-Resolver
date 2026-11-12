@@ -53,7 +53,6 @@ export default function AuthModal({
       if (!result.access_token) {
         throw new Error("Access token was not returned by the server.");
       }
-
       localStorage.setItem("access_token", result.access_token);
 
       await onLoginSuccess(result.access_token);
@@ -75,8 +74,8 @@ export default function AuthModal({
     }
 
     // Email Validation
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail.trim())) {
-      setRegErr("Error: Please enter a valid email address.");
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail.trim())) {   
+     setRegErr("Error: Please enter a valid email address.");
       return;
     }
 
