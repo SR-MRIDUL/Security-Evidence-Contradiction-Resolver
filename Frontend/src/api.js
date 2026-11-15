@@ -1,18 +1,10 @@
-
 const API_BASE_URL = "http://127.0.0.1:8000";
 
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem("access_token");
+  const headers = { ...(options.headers || {}) };
 
-  const headers = {
-    ...(options.headers || {}),
-  };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  // FormData হলে Content-Type নিজে set করবে browser
+  if (token) headers.Authorization = `Bearer ${token}`;
   if (!(options.body instanceof FormData) && options.body) {
     headers["Content-Type"] = "application/json";
   }
@@ -23,61 +15,58 @@ export async function apiRequest(endpoint, options = {}) {
   });
 
   const data = await response.json().catch(() => ({}));
-
   if (!response.ok) {
-    const message =
-      data.detail ||
-      data.message ||
-      `Request failed (${response.status})`;
-
-    throw new Error(
-      typeof message === "string"
-        ? message
-        : JSON.stringify(message)
-    );
+    const message = data.detail || data.message || `Request failed (${response.status})`;
+    throw new Error(typeof message === "string" ? message : JSON.stringify(message));
   }
-
   return data;
 }
 
-export async function registerUser(userData) {
+export function registerUser(userData) {
   return apiRequest("/api/auth/register", {
     method: "POST",
     body: JSON.stringify(userData),
   });
 }
 
-export async function loginUser(credentials) {
+export function loginUser(credentials) {
   return apiRequest("/api/auth/login", {
     method: "POST",
     body: JSON.stringify(credentials),
   });
 }
 
-export async function getCurrentUser() {
+export function getCurrentUser() {
   return apiRequest("/api/auth/me");
 }
 
-export async function getInvestigations() {
+export function getInvestigations() {
   return apiRequest("/api/investigations/");
 }
 
-export async function createInvestigation(data) {
+export function createInvestigation(data) {
   return apiRequest("/api/investigations/", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
+export function analyzeInvestigation(investigationId) {
+  return apiRequest(`/api/investigations/${investigationId}/analyze`, {
+    method: "POST",
+  });
+}
+
+export function getInvestigationResult(investigationId) {
+  return apiRequest(`/api/investigations/${investigationId}/result`);
+}
+
 export async function uploadEvidenceFile(file, investigationId = null) {
   const formData = new FormData();
-
   formData.append("file", file);
-
   if (investigationId !== null) {
-    formData.append("investigation_id", investigationId);
+    formData.append("investigation_id", String(investigationId));
   }
-
   return apiRequest("/api/uploads/", {
     method: "POST",
     body: formData,

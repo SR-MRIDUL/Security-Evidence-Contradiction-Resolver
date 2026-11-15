@@ -9,3 +9,5 @@ python-multipart
 pwdlib[argon2]
 python-jose[cryptography]
 python-dotenv
+langgraph
+langchain-ollama

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 
 import Navbar from "./components/Navbar";
@@ -8,7 +7,6 @@ import DashboardTab from "./components/DashboardTab";
 import UploadTab from "./components/UploadTab";
 import TimelineTab from "./components/TimelineTab";
 
-// FR-30 to FR-35 Components
 import AuditTrail from "./components/AuditTrail";
 import SecureEvidence from "./components/SecureEvidence";
 import Notifications from "./components/Notifications";
@@ -20,6 +18,9 @@ import {
   getCurrentUser,
   getInvestigations,
   createInvestigation,
+  uploadEvidenceFile,
+  analyzeInvestigation,
+  getInvestigationResult,
   logoutUser,
 } from "./api";
 
@@ -27,35 +28,41 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
-
   const [evidenceList, setEvidenceList] = useState([]);
+  const [analysisResult, setAnalysisResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
 
   const isGuest = currentUser === "Guest";
 
-  // Load investigations from Backend
   const loadInvestigations = useCallback(async () => {
     if (!localStorage.getItem("access_token")) return;
-
     try {
       setLoading(true);
       setApiError("");
-
       const data = await getInvestigations();
-
-      const formattedData = data.map((item) => ({
+      setEvidenceList(data.map((item) => ({
         id: item.id,
         title: item.title,
         type: "Investigation",
-        status: item.status || "Pending",
-        time: item.created_at
-          ? new Date(item.created_at).toLocaleString()
-          : "N/A",
+        status: item.status || "pending",
+        time: item.created_at ? new Date(item.created_at).toLocaleString() : "N/A",
         detail: item.description || "No description provided.",
-      }));
+      })));
 
-      setEvidenceList(formattedData);
+      // Restore the most recent saved analysis, if one exists.
+      setAnalysisResult(null);
+      for (const item of data) {
+        try {
+          const result = await getInvestigationResult(item.id);
+          setAnalysisResult(result);
+          break;
+        } catch (error) {
+          if (!String(error.message).includes("404")) {
+            // No saved result is normal for a newly created investigation.
+          }
+        }
+      }
     } catch (error) {
       setApiError(error.message || "Unable to load investigations.");
     } finally {
@@ -63,68 +70,56 @@ export default function App() {
     }
   }, []);
 
-  // Restore session after browser refresh
   useEffect(() => {
     const restoreSession = async () => {
-      const token = localStorage.getItem("access_token");
-
-      if (!token) return;
-
+      if (!localStorage.getItem("access_token")) return;
       try {
         const user = await getCurrentUser();
         setCurrentUser(user.full_name);
         await loadInvestigations();
-      } catch (error) {
+      } catch {
         await logoutUser();
         setCurrentUser(null);
       }
     };
-
     restoreSession();
   }, [loadInvestigations]);
 
-  // Login Success
   const handleLoginSuccess = async () => {
     try {
       const user = await getCurrentUser();
-
       setCurrentUser(user.full_name);
       setIsAuthModalOpen(false);
       setActiveTab("dashboard");
-
       await loadInvestigations();
     } catch (error) {
       setApiError(error.message || "Unable to load user profile.");
     }
   };
 
-  // Guest Login
   const handleGuestLogin = () => {
     setCurrentUser("Guest");
     setEvidenceList([]);
+    setAnalysisResult(null);
     setActiveTab("dashboard");
   };
 
-  // Logout
   const handleLogout = async () => {
     await logoutUser();
-
     setCurrentUser(null);
     setEvidenceList([]);
+    setAnalysisResult(null);
     setActiveTab("dashboard");
     setIsAuthModalOpen(false);
     setApiError("");
-
     alert("Logged out successfully.");
   };
 
-  // Create Investigation in Backend
-  const handleAddEvidence = async (title, type, content) => {
-    if (!content || !content.trim()) {
+  const handleAddEvidence = async (title, type, content, file = null) => {
+    if (!file && (!content || !content.trim())) {
       alert("Please provide valid evidence content!");
       return;
     }
-
     if (isGuest) {
       alert("Please login to save data to the database.");
       setIsAuthModalOpen(true);
@@ -132,37 +127,42 @@ export default function App() {
     }
 
     try {
+      setLoading(true);
       setApiError("");
-
-      await createInvestigation({
+      const investigation = await createInvestigation({
         title: title || "New Investigation",
-        description: `[${type || "General"}] ${content}`,
+        description: file
+          ? `[${type || "General"}] Uploaded file: ${file.name}`
+          : `[${type || "General"}] ${content}`,
       });
 
+      if (file) {
+        await uploadEvidenceFile(file, investigation.id);
+      }
+
+      const result = await analyzeInvestigation(investigation.id);
+      setAnalysisResult(result);
       await loadInvestigations();
-
-      alert("Investigation saved successfully in the database!");
-
       setActiveTab("dashboard");
+      alert("Evidence analyzed successfully. Results saved in MySQL.");
     } catch (error) {
-      setApiError(error.message || "Failed to save investigation.");
-      alert(error.message || "Failed to save investigation.");
+      setApiError(error.message || "Failed to upload or analyze evidence.");
+      alert(error.message || "Failed to upload or analyze evidence.");
+      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="app-container">
-
       {!currentUser ? (
         <LandingPage
           onOpenAuth={() => setIsAuthModalOpen(true)}
           onContinueGuest={handleGuestLogin}
         />
       ) : (
-
-        /* Sidebar + Main Content Layout */
         <div className="app-layout">
-
           <Navbar
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -170,65 +170,32 @@ export default function App() {
             onLogout={handleLogout}
             onOpenAuth={() => setIsAuthModalOpen(true)}
           />
-
           <main className="main-container">
-
-            {apiError && (
-              <div className="error-msg">
-                {apiError}
-              </div>
-            )}
-
-            {loading && (
-              <p>Loading data from database...</p>
-            )}
-
-            {/* Existing Pages */}
+            {apiError && <div className="error-msg">{apiError}</div>}
+            {loading && <p>Uploading and analyzing evidence...</p>}
 
             {activeTab === "dashboard" && (
-              <DashboardTab evidenceList={evidenceList} />
+              <DashboardTab
+                evidenceList={evidenceList}
+                analysisResult={analysisResult}
+              />
             )}
-
             {activeTab === "upload" && (
-              <UploadTab onAddEvidence={handleAddEvidence} />
+              <UploadTab onAddEvidence={handleAddEvidence} loading={loading} />
             )}
-
             {activeTab === "timeline" && (
-              <TimelineTab evidenceList={evidenceList} />
+              <TimelineTab
+                evidenceList={evidenceList}
+                analysisResult={analysisResult}
+              />
             )}
-
-            {/* FR-30: Audit Trail */}
-            {activeTab === "audit" && (
-              <AuditTrail />
-            )}
-
-            {/* FR-31: Secure Evidence Storage */}
-            {activeTab === "secure" && (
-              <SecureEvidence />
-            )}
-
-            {/* FR-32: Notifications */}
-            {activeTab === "notifications" && (
-              <Notifications />
-            )}
-
-            {/* FR-33: Case Management */}
-            {activeTab === "cases" && (
-              <CaseManagement />
-            )}
-
-            {/* FR-34: Analytics */}
-            {activeTab === "analytics" && (
-              <Analytics />
-            )}
-
-            {/* FR-35: Evidence Export */}
-            {activeTab === "export" && (
-              <EvidenceExport />
-            )}
-
+            {activeTab === "audit" && <AuditTrail />}
+            {activeTab === "secure" && <SecureEvidence />}
+            {activeTab === "notifications" && <Notifications />}
+            {activeTab === "cases" && <CaseManagement />}
+            {activeTab === "analytics" && <Analytics />}
+            {activeTab === "export" && <EvidenceExport />}
           </main>
-
         </div>
       )}
 
@@ -237,7 +204,6 @@ export default function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onLoginSuccess={handleLoginSuccess}
       />
-
     </div>
   );
 }

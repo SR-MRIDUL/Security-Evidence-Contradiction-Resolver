@@ -1,55 +1,46 @@
+import React from "react";
 
-import React from 'react';
+export default function TimelineTab({ evidenceList = [], analysisResult = null }) {
+  const timeline = analysisResult?.timeline || [];
 
-export default function TimelineTab({ evidenceList = [] }) {
   return (
     <section className="tab-content active">
       <div className="section-card">
-        <h2><i className="fa-solid fa-clock-rotate-left"></i> Forensic Incident Timeline</h2>
-        <p>Sequential analysis of evidence events stored in system memory.</p>
+        <h2><i className="fa-solid fa-clock-rotate-left"></i> Forensic Event Timeline</h2>
+        <p>Chronological security events reconstructed by Agent 4.</p>
 
         <div className="timeline-wrapper">
-          {evidenceList.length === 0 ? (
-            <p>No investigation events available yet.</p>
+          {timeline.length === 0 ? (
+            <p>No analyzed security-event timeline is available. Upload evidence and run an investigation first.</p>
           ) : (
-            evidenceList.map((item) => {
-              const status = (item.status || "pending").toLowerCase();
-
-              const isConflict = status === "contradiction";
-              const badgeClass = isConflict || status === "failed"
-                ? "danger"
-                : status === "completed"
-                  ? "verified"
-                  : "";
-
-              return (
-                <div
-                  key={item.id}
-                  className={`timeline-event ${isConflict ? 'conflict' : ''}`}
-                >
-                  <div className="timeline-dot"></div>
-
-                  <div className="timeline-card">
-                    <h4>
-                      <span>{item.title}</span>
-                      <span className={`badge ${badgeClass}`}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                      </span>
-                    </h4>
-
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>
-                      Timestamp: {item.time} | Type: {item.type}
-                    </p>
-
-                    <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', wordBreak: 'break-all' }}>
-                      {item.detail}
-                    </p>
-                  </div>
+            timeline.map((event, index) => (
+              <div className="timeline-event" key={`${event.event_id || "event"}-${index}`}>
+                <div className="timeline-dot"></div>
+                <div className="timeline-card">
+                  <h4>{event.event_id || `Event ${index + 1}`} — {event.event_type || "Unknown event"}</h4>
+                  <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                    {event.timestamp || "Timestamp unavailable"} | Source: {event.source || "Unknown"}
+                  </p>
+                  <p><strong>User:</strong> {event.username || "Unknown"} | <strong>IP:</strong> {event.ip_address || "Unknown"}</p>
+                  <p><strong>Location:</strong> {event.location || "Unknown"}</p>
+                  <p style={{ wordBreak: "break-word" }}>{event.raw_evidence}</p>
                 </div>
-              );
-            })
+              </div>
+            ))
           )}
         </div>
+      </div>
+
+      <div className="section-card">
+        <h2><i className="fa-solid fa-folder-open"></i> Investigation Records</h2>
+        {evidenceList.length === 0 ? <p>No investigation records found.</p> : (
+          evidenceList.map((item) => (
+            <div className="timeline-card" key={item.id}>
+              <h4>{item.title}</h4>
+              <p>{item.time} | Status: {item.status}</p>
+            </div>
+          ))
+        )}
       </div>
     </section>
   );
