@@ -1,0 +1,7 @@
+{
+  "name": "security-evidence-contradiction-resolver",
+  "private": true,
+  "scripts": {
+    "dev": "npx --yes concurrently -n \"BACKEND,FRONTEND\" -c \"blue,green\" \"cd Backend && venv\\Scripts\\python.exe -m uvicorn app.main:app --reload\" \"cd Frontend && npm run dev\""
+  }
+}
