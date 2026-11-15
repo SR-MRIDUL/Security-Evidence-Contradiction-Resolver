@@ -33,6 +33,27 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
 
+  // Restore the user's selected theme. Dark mode is the default.
+  const [theme, setTheme] = useState(() => {
+    try {
+      return localStorage.getItem("evidenceresolver-theme") || "dark";
+    } catch {
+      return "dark";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("evidenceresolver-theme", theme);
+    } catch {
+      // The app still works if browser storage is unavailable.
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((currentTheme) => (currentTheme === "dark" ? "light" : "dark"));
+  };
+
   const isGuest = currentUser === "Guest";
 
   const loadInvestigations = useCallback(async () => {
@@ -155,7 +176,18 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container" data-theme={theme}>
+      <button
+        type="button"
+        className="theme-toggle"
+        onClick={toggleTheme}
+        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+        title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+      >
+        <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`} aria-hidden="true" />
+        <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+      </button>
+
       {!currentUser ? (
         <LandingPage
           onOpenAuth={() => setIsAuthModalOpen(true)}
