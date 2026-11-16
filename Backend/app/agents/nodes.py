@@ -193,6 +193,8 @@ def log_analyzer(state: InvestigationState) -> dict:
             "event_type": _first_value(event, "event_type", "event", "action", "type"),
             "timestamp": _first_value(event, "timestamp", "time", "datetime", default=""),
             "raw_evidence": _first_value(event, "raw_evidence", "message", "log", default=str(event)),
+            "source_file": _first_value(event, "source_file", default="manual evidence"),
+            "sha256": _first_value(event, "sha256", default="not available"),
         })
 
     # AI output is explicitly advisory and is never used to create findings.
@@ -291,12 +293,70 @@ def contradiction_detector(state: InvestigationState) -> dict:
 
 
 # --------------------------------------------------
-# AGENT 4: TIMELINE RECONSTRUCTOR
+# AGENT 4: MALWARE & RANSOMWARE INDICATOR DETECTOR
+
+THREAT_RULES = [
+    ("ransomware", "critical", r"vssadmin\s+delete\s+shadows|delete\s+shadows\s*/all|wbadmin\s+delete\s+catalog", "Shadow-copy deletion command observed; this can inhibit recovery."),
+    ("ransomware", "critical", r"bcdedit.*recoveryenabled\s+no|bcdedit.*bootstatuspolicy\s+ignoreallfailures", "Boot recovery settings modification observed."),
+    ("ransomware", "high", r"\b(readme|how_to_decrypt|restore_files|decrypt_instructions|ransom_note)\b|your files have been encrypted|pay\s+(the\s+)?ransom", "Text resembles a ransom note or recovery instruction."),
+    ("ransomware", "high", r"\.(locked|encrypted|crypt|cryptolocker|wncry|lockbit)\b", "A filename or extension associated with encrypted-file activity was observed."),
+    ("malware_execution", "high", r"powershell(?:\.exe)?[^\n]{0,160}-(?:enc|encodedcommand)\b|frombase64string", "Encoded PowerShell or Base64 command execution indicator observed."),
+    ("malware_execution", "high", r"downloadstring|invoke-expression|\biex\b|new-object\s+net\.webclient", "PowerShell download-and-execute pattern observed."),
+    ("malware_execution", "medium", r"\b(certutil|bitsadmin)\b[^\n]{0,160}(?:urlcache|download|transfer|decode)", "Living-off-the-land utility used for download or decoding."),
+    ("malware_execution", "medium", r"\b(mshta|regsvr32|rundll32)\.exe\b", "Potentially abused Windows execution utility observed."),
+    ("credential_access", "critical", r"mimikatz|sekurlsa::|lsass[^\n]{0,80}(?:dump|read)|procdump[^\n]{0,80}lsass", "Credential-dumping tool or LSASS access indicator observed."),
+    ("persistence", "high", r"\b(currentversion\\run|\\runonce)\b|schtasks\s+/create|new-service", "Possible persistence mechanism observed."),
+    ("defense_evasion", "high", r"wevtutil\s+cl|clear-eventlog|disable-defender|set-mppreference[^\n]*disablerealtimemonitoring", "Security logging or endpoint protection tampering indicator observed."),
+]
+
+
+def threat_indicator_detector(state: InvestigationState) -> dict:
+    started = perf_counter()
+    print("\\n[AGENT 4] Malware & Ransomware Indicator Detector started")
+    events = state.get("analyzed_events", [])
+    findings = []
+    for event in events:
+        haystack = " ".join(str(event.get(key, "")) for key in (
+            "raw_evidence", "event_type", "source", "source_file"
+        ))
+        for category, severity, pattern, explanation in THREAT_RULES:
+            match = re.search(pattern, haystack, re.IGNORECASE)
+            if match:
+                findings.append({
+                    "category": category,
+                    "severity": severity,
+                    "event_ids": [event.get("event_id", "unknown")],
+                    "source_file": event.get("source_file", "unknown"),
+                    "indicator": match.group(0)[:180],
+                    "explanation": explanation,
+                    "recommended_action": "Validate the original event, investigate the endpoint, and preserve evidence before remediation.",
+                    "confidence": "heuristic indicator",
+                    "verification_required": True,
+                })
+    result = {
+        "events_scanned": len(events),
+        "findings_count": len(findings),
+        "findings": findings,
+        "scope": "Text/log indicator analysis only; uploaded files are not executed or deeply scanned as binaries.",
+        "limitations": [
+            "A matched string is an indicator, not proof of infection.",
+            "This is not a replacement for antivirus, EDR, YARA, sandboxing, or threat-intelligence services.",
+            "Unknown, obfuscated, encrypted, or unlogged malware may not be detected.",
+        ],
+    }
+    outputs, statuses = _record_agent(
+        state, "Malware & Ransomware Indicator Detector", result, started
+    )
+    print(f"[AGENT 4] Found {len(findings)} potential threat indicators")
+    return {"threat_findings": findings, "agent_outputs": outputs, "agent_status": statuses}
+
+
+# AGENT 5: TIMELINE RECONSTRUCTOR
 # --------------------------------------------------
 
 def timeline_reconstructor(state: InvestigationState) -> dict:
     started = perf_counter()
-    print("\\n[AGENT 4] Timeline Reconstructor started")
+    print("\\n[AGENT 5] Timeline Reconstructor started")
     events = state.get("analyzed_events", [])
 
     def sort_key(event: dict):
@@ -305,27 +365,29 @@ def timeline_reconstructor(state: InvestigationState) -> dict:
 
     timeline = sorted(events, key=sort_key)
     outputs, statuses = _record_agent(state, "Timeline Reconstructor", timeline, started)
-    print(f"[AGENT 4] Timeline created with {len(timeline)} events")
+    print(f"[AGENT 5] Timeline created with {len(timeline)} events")
     return {"timeline": timeline, "agent_outputs": outputs, "agent_status": statuses}
 
 
 # --------------------------------------------------
-# AGENT 5: EVIDENCE RECONCILIATION
+# AGENT 6: EVIDENCE RECONCILIATION
 # --------------------------------------------------
 
 def evidence_reconciler(state: InvestigationState) -> dict:
     started = perf_counter()
-    print("\\n[AGENT 5] Evidence Reconciliation started")
+    print("\\n[AGENT 6] Evidence Reconciliation started")
     events = state.get("analyzed_events", [])
     correlations = state.get("correlations", [])
     contradictions = state.get("contradictions", [])
+    threat_findings = state.get("threat_findings", [])
     timeline = state.get("timeline", [])
 
-    if contradictions:
+    if contradictions or threat_findings:
         confidence = "Medium (heuristic)"
         summary = (
-            f"Processed {len(events)} events and identified {len(contradictions)} "
-            "potential location inconsistency pattern(s). Manual verification is required."
+            f"Processed {len(events)} events; identified {len(contradictions)} potential "
+            f"location inconsistency pattern(s) and {len(threat_findings)} malware/ransomware "
+            "indicator(s). All findings require manual verification."
         )
     elif events:
         confidence = "Low (heuristic)"
@@ -353,19 +415,22 @@ def evidence_reconciler(state: InvestigationState) -> dict:
         "total_events": len(events),
         "total_correlations": len(correlations),
         "total_potential_contradictions": len(contradictions),
+        "total_threat_indicators": len(threat_findings),
         "timeline_entries": len(timeline),
         "confidence": confidence,
         "summary": summary,
         "findings": findings,
+        "threat_findings": threat_findings,
         "limitations": [
             "Confidence is a simple heuristic, not a calibrated probability.",
             "Reported locations have not been independently verified.",
             "Different location labels do not prove impossible travel or malicious activity.",
             "Unrecognized log formats may be retained as raw events with unknown fields.",
-            "AI-generated notes are advisory and are not used as evidence."
+            "AI-generated notes are advisory and are not used as evidence.",
+            "Malware and ransomware checks are heuristic text/log indicator checks, not binary antivirus scanning."
         ],
     }
 
     outputs, statuses = _record_agent(state, "Evidence Reconciliation", report, started)
-    print("[AGENT 5] Final report generated")
+    print("[AGENT 6] Final report generated")
     return {"final_report": report, "agent_outputs": outputs, "agent_status": statuses}

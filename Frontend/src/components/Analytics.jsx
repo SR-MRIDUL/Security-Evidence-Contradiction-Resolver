@@ -1,121 +1,40 @@
-
 import React from "react";
 
-export default function Analytics() {
-  const statusData = [
-    { name: "Open", value: 8, color: "#38bdf8" },
-    { name: "In Progress", value: 5, color: "#f59e0b" },
-    { name: "Completed", value: 12, color: "#10b981" },
-    { name: "Failed", value: 2, color: "#ef4444" },
+export default function Analytics({ evidenceList = [], analysisResult = null }) {
+  const report = analysisResult?.final_report || {};
+  const metrics = [
+    ["Investigations", evidenceList.length],
+    ["Events analyzed", report.total_events ?? analysisResult?.analyzed_events?.length ?? 0],
+    ["Correlations", report.total_correlations ?? analysisResult?.correlations?.length ?? 0],
+    ["Potential contradictions", report.total_potential_contradictions ?? analysisResult?.contradictions?.length ?? 0],
+    ["Threat indicators", report.total_threat_indicators ?? analysisResult?.threat_findings?.length ?? 0],
   ];
-
-  const priorityData = [
-    { name: "High", value: 7, color: "#ef4444" },
-    { name: "Medium", value: 12, color: "#f59e0b" },
-    { name: "Low", value: 8, color: "#10b981" },
-  ];
-
-  const total = statusData.reduce(
-    (sum, item) => sum + item.value,
-    0
-  );
-
-  const maxStatus = Math.max(
-    ...statusData.map((item) => item.value)
-  );
-
-  const maxPriority = Math.max(
-    ...priorityData.map((item) => item.value)
-  );
-
-  const renderChart = (data, maxValue) => (
-    <div>
-      {data.map((item) => (
-        <div key={item.name} style={{ marginBottom: "18px" }}>
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: "6px"
-          }}>
-            <span>{item.name}</span>
-            <strong>{item.value}</strong>
-          </div>
-
-          <div style={{
-            height: "12px",
-            background: "var(--bg-main)",
-            borderRadius: "10px",
-            overflow: "hidden"
-          }}>
-            <div style={{
-              width: `${(item.value / maxValue) * 100}%`,
-              height: "100%",
-              background: item.color,
-              borderRadius: "10px",
-              transition: "width 0.3s"
-            }} />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 
   return (
     <section className="tab-content active">
       <div className="section-card">
-        <h2>
-          <i className="fa-solid fa-chart-column"></i>
-          Advanced Analytics & Visualization
-        </h2>
-
-        <p>
-          Overview of investigation statistics and case distribution.
-        </p>
-
-        <div className="metrics-grid">
-          <div className="metric-card">
-            <i className="fa-solid fa-folder metric-icon"></i>
-            <div>
-              <h3>{total}</h3>
-              <p>Total Investigations</p>
-            </div>
-          </div>
-
-          <div className="metric-card success">
-            <i className="fa-solid fa-check-circle metric-icon"></i>
-            <div>
-              <h3>12</h3>
-              <p>Completed Cases</p>
-            </div>
-          </div>
-
-          <div className="metric-card warning">
-            <i className="fa-solid fa-spinner metric-icon"></i>
-            <div>
-              <h3>5</h3>
-              <p>In Progress</p>
-            </div>
-          </div>
+        <h2><i className="fa-solid fa-chart-column" /> Investigation Analytics</h2>
+        <p>Live metrics from records and the most recently loaded investigation result. No sample/demo counts are mixed into these figures.</p>
+        <div className="report-stat-grid">
+          {metrics.map(([label, value]) => <div key={label}><strong>{value}</strong><span>{label}</span></div>)}
         </div>
       </div>
-
       <div className="section-card">
-        <h2>Investigation Status Distribution</h2>
-        {renderChart(statusData, maxStatus)}
+        <h2>Current investigation assessment</h2>
+        {analysisResult ? <>
+          <p><strong>Status:</strong> {analysisResult.status || "completed"}</p>
+          <p><strong>Heuristic confidence:</strong> {report.confidence || "Not available"}</p>
+          <p>{report.summary || "No summary was stored for this result."}</p>
+        </> : <p>No analysis result is currently loaded. Upload evidence and run the workflow to populate analytics.</p>}
       </div>
-
       <div className="section-card">
-        <h2>Investigation Priority Distribution</h2>
-        {renderChart(priorityData, maxPriority)}
-      </div>
-
-      <div className="section-card">
-        <h2>Analytics Information</h2>
-        <p>
-          These charts currently use sample data.
-          Live analytics will require backend investigation records
-          and aggregation APIs.
-        </p>
+        <h2>Investigation records</h2>
+        {evidenceList.length === 0 ? <p>No investigation records are available for this account.</p> : evidenceList.map((item) => (
+          <div className="timeline-card" key={item.id}>
+            <h4>{item.title}</h4>
+            <p>{item.time} · Status: {item.status}</p>
+          </div>
+        ))}
       </div>
     </section>
   );

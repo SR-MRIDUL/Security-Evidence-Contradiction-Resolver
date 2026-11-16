@@ -6,6 +6,7 @@ class InvestigationState(TypedDict, total=False):
     analyzed_events: list[dict[str, Any]]
     correlations: list[dict[str, Any]]
     contradictions: list[dict[str, Any]]
+    threat_findings: list[dict[str, Any]]
     timeline: list[dict[str, Any]]
     agent_outputs: list[dict[str, Any]]
     agent_status: list[dict[str, Any]]

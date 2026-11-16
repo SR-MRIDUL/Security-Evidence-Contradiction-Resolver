@@ -26,7 +26,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         full_name=user_data.full_name,
         email=user_data.email,
         hashed_password=hash_password(user_data.password),
-        role="analyst"
+        role="user"
     )
 
     db.add(user)

@@ -1,4 +1,5 @@
 import json
+import hashlib
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -24,7 +25,7 @@ def _get_accessible_investigation(investigation_id: int, db: Session, current_us
     ).first()
     if investigation is None:
         raise HTTPException(status_code=404, detail="Investigation not found")
-    if current_user.role != "admin" and investigation.created_by != current_user.id:
+    if current_user.role not in {"admin", "analyst"} and investigation.created_by != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
     return investigation
 
@@ -52,7 +53,7 @@ def get_investigations(
     current_user: User = Depends(get_current_user),
 ):
     query = db.query(Investigation)
-    if current_user.role != "admin":
+    if current_user.role not in {"admin", "analyst"}:
         query = query.filter(Investigation.created_by == current_user.id)
     return query.order_by(Investigation.id.desc()).all()
 
@@ -120,9 +121,14 @@ def analyze_investigation(
                     status_code=400,
                     detail=f"Unable to read file: {uploaded.original_filename}",
                 )
-            events.extend(
-                parse_evidence_text(content, uploaded.file_type, uploaded.original_filename)
+            parsed_events = parse_evidence_text(
+                content, uploaded.file_type, uploaded.original_filename
             )
+            file_hash = hashlib.sha256(file_path.read_bytes()).hexdigest()
+            for event in parsed_events:
+                event["source_file"] = uploaded.original_filename
+                event["sha256"] = file_hash
+            events.extend(parsed_events)
     elif investigation.description:
         content = investigation.description
         if content.startswith("[") and "] " in content:
@@ -149,6 +155,7 @@ def analyze_investigation(
             "analyzed_events": result.get("analyzed_events", []),
             "correlations": result.get("correlations", []),
             "contradictions": result.get("contradictions", []),
+            "threat_findings": result.get("threat_findings", []),
             "timeline": result.get("timeline", []),
             "agent_outputs": result.get("agent_outputs", []),
             "agent_status": result.get("agent_status", []),

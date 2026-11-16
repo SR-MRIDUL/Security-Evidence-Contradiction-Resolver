@@ -6,88 +6,41 @@ import AuthModal from "./components/AuthModal";
 import DashboardTab from "./components/DashboardTab";
 import UploadTab from "./components/UploadTab";
 import TimelineTab from "./components/TimelineTab";
-
-import AuditTrail from "./components/AuditTrail";
-import SecureEvidence from "./components/SecureEvidence";
-import Notifications from "./components/Notifications";
-import CaseManagement from "./components/CaseManagement";
+import UploadHistory from "./components/UploadHistory";
 import Analytics from "./components/Analytics";
 import EvidenceExport from "./components/EvidenceExport";
-
-import {
-  getCurrentUser,
-  getInvestigations,
-  createInvestigation,
-  uploadEvidenceFile,
-  analyzeInvestigation,
-  getInvestigationResult,
-  logoutUser,
-} from "./api";
+import AdminPanel from "./components/AdminPanel";
+import { getCurrentUser, getUploadHistory, uploadEvidenceFile, logoutUser } from "./api";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [evidenceList, setEvidenceList] = useState([]);
+  const [uploadHistory, setUploadHistory] = useState([]);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
-
-  // Restore the user's selected theme. Dark mode is the default.
   const [theme, setTheme] = useState(() => {
-    try {
-      return localStorage.getItem("evidenceresolver-theme") || "dark";
-    } catch {
-      return "dark";
-    }
+    try { return localStorage.getItem("evidenceresolver-theme") || "dark"; }
+    catch { return "dark"; }
   });
 
   useEffect(() => {
-    try {
-      localStorage.setItem("evidenceresolver-theme", theme);
-    } catch {
-      // The app still works if browser storage is unavailable.
-    }
+    try { localStorage.setItem("evidenceresolver-theme", theme); } catch { /* optional preference */ }
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme((currentTheme) => (currentTheme === "dark" ? "light" : "dark"));
-  };
+  const isGuest = currentUser?.role === "guest";
 
-  const isGuest = currentUser === "Guest";
-
-  const loadInvestigations = useCallback(async () => {
+  const loadHistory = useCallback(async () => {
     if (!localStorage.getItem("access_token")) return;
     try {
-      setLoading(true);
       setApiError("");
-      const data = await getInvestigations();
-      setEvidenceList(data.map((item) => ({
-        id: item.id,
-        title: item.title,
-        type: "Investigation",
-        status: item.status || "pending",
-        time: item.created_at ? new Date(item.created_at).toLocaleString() : "N/A",
-        detail: item.description || "No description provided.",
-      })));
-
-      // Restore the most recent saved analysis, if one exists.
-      setAnalysisResult(null);
-      for (const item of data) {
-        try {
-          const result = await getInvestigationResult(item.id);
-          setAnalysisResult(result);
-          break;
-        } catch (error) {
-          if (!String(error.message).includes("404")) {
-            // No saved result is normal for a newly created investigation.
-          }
-        }
-      }
+      const records = await getUploadHistory();
+      setUploadHistory(records);
+      const latest = records.find((item) => item.analysis)?.analysis || null;
+      setAnalysisResult(latest);
     } catch (error) {
-      setApiError(error.message || "Unable to load investigations.");
-    } finally {
-      setLoading(false);
+      setApiError(error.message || "Unable to load upload history.");
     }
   }, []);
 
@@ -96,31 +49,31 @@ export default function App() {
       if (!localStorage.getItem("access_token")) return;
       try {
         const user = await getCurrentUser();
-        setCurrentUser(user.full_name);
-        await loadInvestigations();
+        setCurrentUser(user);
+        await loadHistory();
       } catch {
         await logoutUser();
         setCurrentUser(null);
       }
     };
     restoreSession();
-  }, [loadInvestigations]);
+  }, [loadHistory]);
 
   const handleLoginSuccess = async () => {
     try {
       const user = await getCurrentUser();
-      setCurrentUser(user.full_name);
+      setCurrentUser(user);
       setIsAuthModalOpen(false);
       setActiveTab("dashboard");
-      await loadInvestigations();
+      await loadHistory();
     } catch (error) {
       setApiError(error.message || "Unable to load user profile.");
     }
   };
 
   const handleGuestLogin = () => {
-    setCurrentUser("Guest");
-    setEvidenceList([]);
+    setCurrentUser({ full_name: "Guest", role: "guest" });
+    setUploadHistory([]);
     setAnalysisResult(null);
     setActiveTab("dashboard");
   };
@@ -128,114 +81,79 @@ export default function App() {
   const handleLogout = async () => {
     await logoutUser();
     setCurrentUser(null);
-    setEvidenceList([]);
+    setUploadHistory([]);
     setAnalysisResult(null);
     setActiveTab("dashboard");
     setIsAuthModalOpen(false);
     setApiError("");
-    alert("Logged out successfully.");
   };
 
-  const handleAddEvidence = async (title, type, content, file = null) => {
-    if (!file && (!content || !content.trim())) {
-      alert("Please provide valid evidence content!");
-      return;
-    }
+  const handleAddEvidence = async (file) => {
+    if (!file) throw new Error("Select a file to upload.");
     if (isGuest) {
-      alert("Please login to save data to the database.");
       setIsAuthModalOpen(true);
-      return;
+      throw new Error("Please login or register before uploading evidence.");
     }
-
+    setLoading(true);
+    setApiError("");
     try {
-      setLoading(true);
-      setApiError("");
-      const investigation = await createInvestigation({
-        title: title || "New Investigation",
-        description: file
-          ? `[${type || "General"}] Uploaded file: ${file.name}`
-          : `[${type || "General"}] ${content}`,
-      });
-
-      if (file) {
-        await uploadEvidenceFile(file, investigation.id);
-      }
-
-      const result = await analyzeInvestigation(investigation.id);
-      setAnalysisResult(result);
-      await loadInvestigations();
+      const response = await uploadEvidenceFile(file);
+      setAnalysisResult(response.analysis || null);
+      await loadHistory();
+      // Keep the just-completed result selected, even if history refresh returns older records first.
+      setAnalysisResult(response.analysis || null);
       setActiveTab("dashboard");
-      alert("Evidence analyzed successfully. Results saved in MySQL.");
     } catch (error) {
       setApiError(error.message || "Failed to upload or analyze evidence.");
-      alert(error.message || "Failed to upload or analyze evidence.");
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
+  const handleViewHistory = (item) => {
+    setAnalysisResult(item.analysis);
+    setActiveTab("dashboard");
+  };
+
+  const evidenceList = uploadHistory.map((item) => ({
+    id: item.file?.id,
+    title: item.file?.original_filename || item.investigation?.title || "Uploaded evidence",
+    status: item.investigation?.status || "unknown",
+    time: item.file?.uploaded_at ? new Date(item.file.uploaded_at).toLocaleString() : "N/A",
+  }));
+
+  const renderActiveTab = () => {
+    if (activeTab === "dashboard") return <DashboardTab evidenceList={evidenceList} analysisResult={analysisResult} />;
+    if (activeTab === "upload") return <UploadTab onAddEvidence={handleAddEvidence} loading={loading} />;
+    if (activeTab === "history") return <UploadHistory history={uploadHistory} onView={handleViewHistory} />;
+    if (activeTab === "timeline") return <TimelineTab evidenceList={evidenceList} analysisResult={analysisResult} />;
+    if (activeTab === "analytics" && (currentUser?.role === "analyst" || currentUser?.role === "admin")) return <Analytics evidenceList={evidenceList} analysisResult={analysisResult} />;
+    if (activeTab === "export") return <EvidenceExport history={uploadHistory} analysisResult={analysisResult} />;
+    if (activeTab === "admin" && currentUser?.role === "admin") return <AdminPanel currentUser={currentUser} />;
+    return <DashboardTab evidenceList={evidenceList} analysisResult={analysisResult} />;
+  };
+
   return (
     <div className="app-container" data-theme={theme}>
-      <button
-        type="button"
-        className="theme-toggle"
-        onClick={toggleTheme}
-        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-        title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-      >
+      <button type="button" className="theme-toggle" onClick={() => setTheme((value) => value === "dark" ? "light" : "dark")}
+        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
         <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`} aria-hidden="true" />
         <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
       </button>
-
       {!currentUser ? (
-        <LandingPage
-          onOpenAuth={() => setIsAuthModalOpen(true)}
-          onContinueGuest={handleGuestLogin}
-        />
+        <LandingPage onOpenAuth={() => setIsAuthModalOpen(true)} onContinueGuest={handleGuestLogin} />
       ) : (
         <div className="app-layout">
-          <Navbar
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            currentUser={currentUser}
-            onLogout={handleLogout}
-            onOpenAuth={() => setIsAuthModalOpen(true)}
-          />
+          <Navbar activeTab={activeTab} setActiveTab={setActiveTab} currentUser={currentUser} onLogout={handleLogout} />
           <main className="main-container">
             {apiError && <div className="error-msg">{apiError}</div>}
-            {loading && <p>Uploading and analyzing evidence...</p>}
-
-            {activeTab === "dashboard" && (
-              <DashboardTab
-                evidenceList={evidenceList}
-                analysisResult={analysisResult}
-              />
-            )}
-            {activeTab === "upload" && (
-              <UploadTab onAddEvidence={handleAddEvidence} loading={loading} />
-            )}
-            {activeTab === "timeline" && (
-              <TimelineTab
-                evidenceList={evidenceList}
-                analysisResult={analysisResult}
-              />
-            )}
-            {activeTab === "audit" && <AuditTrail />}
-            {activeTab === "secure" && <SecureEvidence />}
-            {activeTab === "notifications" && <Notifications />}
-            {activeTab === "cases" && <CaseManagement />}
-            {activeTab === "analytics" && <Analytics />}
-            {activeTab === "export" && <EvidenceExport />}
+            {loading && <p className="loading-banner">Uploading evidence and running the six analysis agents...</p>}
+            {renderActiveTab()}
           </main>
         </div>
       )}
-
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
-      />
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onLoginSuccess={handleLoginSuccess} />
     </div>
   );
 }

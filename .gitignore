@@ -1,8 +1,8 @@
-
 # Python
 venv/
 **/venv/
 __pycache__/
+**/__pycache__/
 *.py[cod]
 .pytest_cache/
 
@@ -11,11 +11,15 @@ __pycache__/
 .env.*
 **/.env
 **/.env.*
+!.env.example
+!**/.env.example
 
-# Uploaded files
-uploads/*
-**/uploads/*
-!.gitkeep
+# Local databases and uploaded evidence
+*.db
+*.sqlite
+*.sqlite3
+uploads/
+**/uploads/
 
 # Node.js
 node_modules/
@@ -23,6 +27,8 @@ node_modules/
 dist/
 **/dist/
 
-# IDE
+# IDE and OS files
 .idea/
 .vscode/
+.DS_Store
+Thumbs.db

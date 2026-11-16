@@ -1,182 +1,102 @@
+import React, { useMemo, useState } from "react";
 
-import React, { useState } from "react";
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
 
-export default function EvidenceExport() {
+function csvCell(value) {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`;
+}
+
+export default function EvidenceExport({ history = [], analysisResult = null }) {
   const [exportType, setExportType] = useState("JSON");
-
-  const evidence = [
-    {
-      id: 1,
-      title: "Unauthorized Login",
-      type: "Auth",
-      status: "Pending",
-      date: "2026-11-12",
-      description: "Suspicious login attempt detected.",
-    },
-    {
-      id: 2,
-      title: "Network Traffic Analysis",
-      type: "Network",
-      status: "Completed",
-      date: "2026-11-11",
-      description: "Unusual network activity identified.",
-    },
-    {
-      id: 3,
-      title: "Server Log Review",
-      type: "Server",
-      status: "Processing",
-      date: "2026-11-10",
-      description: "Server logs are under review.",
-    },
-  ];
-
-  const downloadFile = (content, filename, mimeType) => {
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    URL.revokeObjectURL(url);
-  };
+  const exportRows = useMemo(() => history.map((item) => {
+    const file = item.file || {};
+    const investigation = item.investigation || {};
+    const report = item.analysis?.final_report || {};
+    return {
+      file_id: file.id,
+      filename: file.original_filename,
+      uploaded_at: file.uploaded_at,
+      uploaded_by: item.uploaded_by?.email || "",
+      status: investigation.status || "unknown",
+      events_analyzed: report.total_events ?? item.analysis?.analyzed_events?.length ?? 0,
+      correlations: report.total_correlations ?? item.analysis?.correlations?.length ?? 0,
+      potential_contradictions: report.total_potential_contradictions ?? item.analysis?.contradictions?.length ?? 0,
+      threat_indicators: report.total_threat_indicators ?? item.analysis?.threat_findings?.length ?? 0,
+      summary: report.summary || "",
+      sha256: file.sha256 || "",
+    };
+  }), [history]);
 
   const exportJSON = () => {
-    downloadFile(
-      JSON.stringify(evidence, null, 2),
-      "evidence-report.json",
-      "application/json"
-    );
+    const payload = {
+      exported_at: new Date().toISOString(),
+      uploads: history,
+      selected_analysis: analysisResult,
+    };
+    downloadFile(JSON.stringify(payload, null, 2), "sercr-investigation-export.json", "application/json");
   };
 
   const exportCSV = () => {
-    const headers = Object.keys(evidence[0]);
-
-    const escapeCSV = (value) =>
-      `"${String(value ?? "").replace(/"/g, '""')}"`;
-
-    const rows = evidence.map((item) =>
-      headers.map((key) => escapeCSV(item[key])).join(",")
-    );
-
-    const csv = [
-      headers.join(","),
-      ...rows
-    ].join("\r\n");
-
-    downloadFile(
-      "\uFEFF" + csv,
-      "evidence-report.csv",
-      "text/csv;charset=utf-8;"
-    );
-  };
-
-  const exportPDF = () => {
-    window.print();
+    if (!exportRows.length) return;
+    const headers = Object.keys(exportRows[0]);
+    const rows = [headers.map(csvCell).join(","), ...exportRows.map((row) => headers.map((key) => csvCell(row[key])).join(","))];
+    downloadFile("\uFEFF" + rows.join("\r\n"), "sercr-upload-history.csv", "text/csv;charset=utf-8;");
   };
 
   const handleExport = () => {
-    if (evidence.length === 0) {
-      alert("No evidence available for export.");
+    if (!history.length && !analysisResult) {
+      alert("There is no investigation data to export yet.");
       return;
     }
-
-    if (exportType === "JSON") {
-      exportJSON();
-    } else if (exportType === "CSV") {
-      exportCSV();
-    } else if (exportType === "PDF") {
-      exportPDF();
-    }
+    if (exportType === "JSON") exportJSON();
+    else if (exportType === "CSV") exportCSV();
+    else window.print();
   };
 
   return (
     <section className="tab-content active">
       <div className="section-card">
-        <h2>
-          <i className="fa-solid fa-file-export"></i>
-          Multi-Format Evidence Export
-        </h2>
-
-        <p>
-          Export investigation evidence and reports in different formats.
-        </p>
-
-        <div className="metrics-grid">
-          <div className="metric-card">
-            <i className="fa-solid fa-file-lines metric-icon"></i>
-            <div>
-              <h3>{evidence.length}</h3>
-              <p>Available Records</p>
-            </div>
-          </div>
+        <h2><i className="fa-solid fa-file-export" /> Export Investigation Data</h2>
+        <p>Export the actual saved upload history and investigation results. No sample records are included.</p>
+        <div className="report-stat-grid">
+          <div><strong>{history.length}</strong><span>Uploaded files</span></div>
+          <div><strong>{exportRows.reduce((sum, row) => sum + Number(row.events_analyzed || 0), 0)}</strong><span>Events analyzed</span></div>
+          <div><strong>{exportRows.reduce((sum, row) => sum + Number(row.threat_indicators || 0), 0)}</strong><span>Threat indicators</span></div>
         </div>
-
         <div className="form-group">
-          <label>Select Export Format</label>
-          <select
-            value={exportType}
-            onChange={(e) => setExportType(e.target.value)}
-          >
-            <option value="JSON">JSON</option>
-            <option value="CSV">CSV</option>
-            <option value="PDF">PDF / Print</option>
+          <label htmlFor="export-format">Select export format</label>
+          <select id="export-format" value={exportType} onChange={(event) => setExportType(event.target.value)}>
+            <option value="JSON">JSON — complete saved results</option>
+            <option value="CSV">CSV — upload summary</option>
+            <option value="PDF">Print / Save as PDF</option>
           </select>
         </div>
-
-        <button
-          className="submit-btn"
-          onClick={handleExport}
-          type="button"
-        >
-          <i className="fa-solid fa-download"></i>
-          Export Evidence
+        <button className="submit-btn" onClick={handleExport} type="button">
+          <i className="fa-solid fa-download" /> Export Data
         </button>
       </div>
-
       <div className="section-card">
         <h2>Export Preview</h2>
-
-        <div style={{ overflowX: "auto" }}>
-          <table style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            color: "var(--text-primary)"
-          }}>
-            <thead>
-              <tr>
-                {["ID", "Title", "Type", "Status", "Date"].map(
-                  (heading) => (
-                    <th key={heading} style={{
-                      padding: "12px",
-                      textAlign: "left",
-                      borderBottom: "1px solid var(--border-color)"
-                    }}>
-                      {heading}
-                    </th>
-                  )
-                )}
-              </tr>
-            </thead>
-
-            <tbody>
-              {evidence.map((item) => (
-                <tr key={item.id}>
-                  <td style={{ padding: "12px" }}>{item.id}</td>
-                  <td style={{ padding: "12px" }}>{item.title}</td>
-                  <td style={{ padding: "12px" }}>{item.type}</td>
-                  <td style={{ padding: "12px" }}>{item.status}</td>
-                  <td style={{ padding: "12px" }}>{item.date}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {exportRows.length === 0 ? <p>No uploaded evidence is available to export.</p> : (
+          <div className="table-scroll">
+            <table className="admin-users-table">
+              <thead><tr><th>File</th><th>Status</th><th>Events</th><th>Contradictions</th><th>Threat indicators</th></tr></thead>
+              <tbody>{exportRows.map((row) => (
+                <tr key={row.file_id}><td>{row.filename}</td><td>{row.status}</td><td>{row.events_analyzed}</td><td>{row.potential_contradictions}</td><td>{row.threat_indicators}</td></tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )}
       </div>
     </section>
   );

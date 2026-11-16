@@ -7,7 +7,7 @@ export default function TimelineTab({ evidenceList = [], analysisResult = null }
     <section className="tab-content active">
       <div className="section-card">
         <h2><i className="fa-solid fa-clock-rotate-left"></i> Forensic Event Timeline</h2>
-        <p>Chronological security events reconstructed by Agent 4.</p>
+        <p>Chronological security events reconstructed by Agent 5.</p>
 
         <div className="timeline-wrapper">
           {timeline.length === 0 ? (
