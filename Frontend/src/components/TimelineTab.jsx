@@ -19,11 +19,12 @@ export default function TimelineTab({ evidenceList = [], analysisResult = null }
                 <div className="timeline-card">
                   <h4>{event.event_id || `Event ${index + 1}`} — {event.event_type || "Unknown event"}</h4>
                   <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                    {event.timestamp || "Timestamp unavailable"} | Source: {event.source || "Unknown"}
+                    {event.timestamp || "Timestamp unavailable"} | Time status: {event.timestamp_status || "not checked"} | Source: {event.source || "Unknown"}
                   </p>
                   <p><strong>User:</strong> {event.username || "Unknown"} | <strong>IP:</strong> {event.ip_address || "Unknown"}</p>
                   <p><strong>Location:</strong> {event.location || "Unknown"}</p>
                   <p style={{ wordBreak: "break-word" }}>{event.raw_evidence}</p>
+                  {event._parse_warnings?.length > 0 && <p><strong>Parser warning:</strong> {event._parse_warnings.join("; ")}</p>}
                 </div>
               </div>
             ))

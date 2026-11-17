@@ -22,7 +22,7 @@ const AGENTS = [
   },
   {
     name: "Malware & Ransomware Indicator Detector",
-    description: "Searches uploaded log text for suspicious execution, ransomware, credential-access, persistence and defense-evasion indicators.",
+    description: "Checks logs for malware/ransomware, brute force, suspicious logins, privilege escalation, unauthorized access, possible exfiltration, lateral movement, network threats and policy violations.",
     icon: "fa-shield-virus",
     purpose: "What this agent does",
   },
@@ -127,11 +127,12 @@ export default function AgentActivity({ outputs = [] }) {
         {AGENTS.map((agent, index) => {
           const output = outputByName.get(agent.name);
           const format = formats[agent.name] || "readable";
-          const completed = output?.status === "completed";
+          const completed = ["completed", "completed_with_warnings"].includes(output?.status);
+          const statusClass = output?.status === "completed_with_warnings" ? "agent-warning" : (completed ? "agent-complete" : "agent-pending");
           const result = output?.result;
 
           return (
-            <article className={`timeline-event agent-timeline-event ${completed ? "agent-complete" : "agent-pending"}`} key={agent.name}>
+            <article className={`timeline-event agent-timeline-event ${statusClass}`} key={agent.name}>
               <div className="timeline-dot agent-timeline-dot"><span>{index + 1}</span></div>
               <div className="timeline-card agent-timeline-card">
                 <div className="agent-timeline-heading">
@@ -142,7 +143,7 @@ export default function AgentActivity({ outputs = [] }) {
                       <p className="agent-description">{agent.description}</p>
                     </div>
                   </div>
-                  <span className={`badge ${completed ? "verified" : "agent-not-run"}`}>
+                  <span className={`badge ${output?.status === "completed_with_warnings" ? "warning" : (completed ? "verified" : "agent-not-run")}`}>
                     {output?.status || "Not run"}
                   </span>
                 </div>

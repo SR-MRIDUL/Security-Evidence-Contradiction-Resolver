@@ -1762,3 +1762,15 @@ button {
     font-size: .82rem;
   }
 }
+
+
+/* Analysis warning badge: partial parsing or optional AI unavailable. */
+.badge.warning {
+    background-color: rgba(245, 158, 11, 0.16);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+}
+
+.agent-warning .agent-timeline-dot {
+    border-color: var(--warning);
+}

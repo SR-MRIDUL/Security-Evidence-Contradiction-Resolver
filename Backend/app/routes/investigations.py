@@ -156,6 +156,7 @@ def analyze_investigation(
             "correlations": result.get("correlations", []),
             "contradictions": result.get("contradictions", []),
             "threat_findings": result.get("threat_findings", []),
+            "security_findings": result.get("security_findings", result.get("threat_findings", [])),
             "timeline": result.get("timeline", []),
             "agent_outputs": result.get("agent_outputs", []),
             "agent_status": result.get("agent_status", []),
