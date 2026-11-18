@@ -113,7 +113,7 @@ export default function App() {
 
   const handleViewHistory = (item) => {
     setAnalysisResult(item.analysis);
-    setActiveTab("dashboard");
+    
   };
 
   const evidenceList = uploadHistory.map((item) => ({
