@@ -3,7 +3,10 @@ import React, { useRef, useState } from "react";
 
 const ALLOWED_EXTENSIONS = [".csv", ".json", ".txt", ".log"];
 
-export default function UploadTab({ onAddEvidence, loading = false }) {
+export default function UploadTab({
+  onAddEvidence,
+  loading = false
+}) {
   const [file, setFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [launching, setLaunching] = useState(false);
@@ -11,12 +14,12 @@ export default function UploadTab({ onAddEvidence, loading = false }) {
 
   const inputRef = useRef(null);
 
-  const isBusy = loading || isSubmitting;
+  const isBusy = loading || isSubmitting || launching;
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (isBusy || launching) return;
+    if (isBusy) return;
 
     if (!file) {
       alert("Please select a security evidence file first.");
@@ -25,7 +28,11 @@ export default function UploadTab({ onAddEvidence, loading = false }) {
 
     const name = file.name.toLowerCase();
 
-    if (!ALLOWED_EXTENSIONS.some((ext) => name.endsWith(ext))) {
+    if (
+      !ALLOWED_EXTENSIONS.some((ext) =>
+        name.endsWith(ext)
+      )
+    ) {
       alert("Supported formats: CSV, JSON, TXT and LOG.");
       return;
     }
@@ -38,19 +45,19 @@ export default function UploadTab({ onAddEvidence, loading = false }) {
     try {
       setIsSubmitting(true);
 
-      // Existing upload and analysis function
+      // Upload and analysis
       await onAddEvidence(file);
 
+      // Start rocket only after successful operation
       setIsSubmitting(false);
-
-      // Rocket launches after successful analysis
       setLaunching(true);
 
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1300)
+      );
 
       setLaunching(false);
       setSuccess(true);
-
       setFile(null);
 
       if (inputRef.current) {
@@ -70,7 +77,7 @@ export default function UploadTab({ onAddEvidence, loading = false }) {
     }
   };
 
-  // Success Screen
+  // SUCCESS SCREEN
   if (success) {
     return (
       <section className="tab-content active">
@@ -80,11 +87,14 @@ export default function UploadTab({ onAddEvidence, loading = false }) {
             <i className="fa-solid fa-check"></i>
           </div>
 
-          <h2>Analysis Completed Successfully!</h2>
+          <h2>
+            Analysis Completed Successfully!
+          </h2>
 
           <p>
-            Your security evidence has been successfully uploaded
-            and analyzed. Your investigation report is ready.
+            Your security evidence has been successfully
+            uploaded and analyzed. Your investigation
+            report is ready.
           </p>
 
           <button
@@ -93,7 +103,7 @@ export default function UploadTab({ onAddEvidence, loading = false }) {
             onClick={() => setSuccess(false)}
           >
             <i className="fa-solid fa-file-shield"></i>
-            Done
+            {" "}Done
           </button>
 
         </div>
@@ -101,6 +111,7 @@ export default function UploadTab({ onAddEvidence, loading = false }) {
     );
   }
 
+  // UPLOAD SCREEN
   return (
     <section className="tab-content active">
 
@@ -131,19 +142,13 @@ export default function UploadTab({ onAddEvidence, loading = false }) {
               className="file-input"
               type="file"
               accept=".csv,.json,.txt,.log"
-              disabled={isBusy || launching}
+              disabled={isBusy}
               onChange={(event) =>
                 setFile(event.target.files?.[0] || null)
               }
             />
 
-            <small
-              style={{
-                color: "var(--text-secondary)",
-                display: "block",
-                marginTop: "0.5rem"
-              }}
-            >
+            <small className="upload-file-hint">
               CSV, JSON, TXT or LOG · Maximum 10 MB · UTF-8 text files
             </small>
 
@@ -151,40 +156,87 @@ export default function UploadTab({ onAddEvidence, loading = false }) {
 
           {file && (
             <div className="selected-file-summary">
+
               <i className="fa-solid fa-file-lines" />
+
               <span>{file.name}</span>
-              <small>{(file.size / 1024).toFixed(1)} KB</small>
+
+              <small>
+                {(file.size / 1024).toFixed(1)} KB
+              </small>
+
             </div>
           )}
 
           <button
             type="submit"
-            className={`submit-btn rocket-upload-btn
-              ${isBusy ? "is-loading" : ""}
-              ${launching ? "is-launching" : ""}`}
-            disabled={isBusy || launching || !file}
+            className={`submit-btn rocket-upload-btn ${
+              isSubmitting ? "is-loading" : ""
+            } ${
+              launching ? "is-launching" : ""
+            }`}
+            disabled={isBusy || !file}
           >
 
             <span className="rocket-button-text">
               <i className="fa-solid fa-microchip"></i>
-              {" "}
-              Upload & Analyze Evidence
+              {" "}Upload & Analyze Evidence
             </span>
+
+            {/* ROCKET ANIMATION */}
 
             <span className="rocket-animation">
 
-              <span className="rocket-loading-ring"></span>
+              {/* Loading Ring */}
+
+              <span className="rocket-loading-ring">
+
+                <svg viewBox="0 0 100 100">
+                  <circle
+                    className="rocket-ring-track"
+                    cx="50"
+                    cy="50"
+                    r="44"
+                  />
+
+                  <circle
+                    className="rocket-ring-progress"
+                    cx="50"
+                    cy="50"
+                    r="44"
+                  />
+                </svg>
+
+              </span>
+
+              {/* Smoke Trail */}
+
+              <span className="rocket-smoke">
+
+                <span className="smoke-particle smoke-one"></span>
+
+                <span className="smoke-particle smoke-two"></span>
+
+                <span className="smoke-particle smoke-three"></span>
+
+              </span>
+
+              {/* Rocket Fire */}
 
               <span className="rocket-fire"></span>
+
+              {/* Rocket SVG */}
 
               <svg
                 className="rocket-image"
                 viewBox="0 0 64 64"
                 fill="none"
+                aria-hidden="true"
               >
+
                 <path
                   d="M32 4C21 14 19 27 20 39L32 49L44 39C45 27 43 14 32 4Z"
-                  fill="#FFFFFF"
+                  fill="#2563EB"
                 />
 
                 <path
@@ -192,27 +244,35 @@ export default function UploadTab({ onAddEvidence, loading = false }) {
                   fill="#DBEAFE"
                 />
 
-                <circle cx="32" cy="25" r="5" fill="#2563EB" />
+                <circle
+                  cx="32"
+                  cy="25"
+                  r="5"
+                  fill="#2563EB"
+                />
 
                 <path
                   d="M20 29L9 38L19 41L22 35"
-                  fill="#FFFFFF"
+                  fill="#60A5FA"
                 />
 
                 <path
                   d="M44 29L55 38L45 41L42 35"
-                  fill="#FFFFFF"
+                  fill="#60A5FA"
                 />
 
                 <path
-                  d="M27 47L32 58L37 47"
-                  fill="#F59E0B"
+                  className="rocket-flame-outer"
+                  d="M25 46Q32 57 32 64Q32 57 39 46Z"
+                  fill="#F97316"
                 />
 
                 <path
-                  d="M29 47L32 54L35 47"
-                  fill="#EF4444"
+                  className="rocket-flame-inner"
+                  d="M29 46Q32 54 35 46Z"
+                  fill="#FDE68A"
                 />
+
               </svg>
 
             </span>

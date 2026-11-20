@@ -1776,214 +1776,317 @@ button {
 }
 
 
-/* =====================================
-   SERCR ROCKET UPLOAD ANIMATION
-===================================== */
+/* =========================================
+   ROCKET UPLOAD ANIMATION - CLEAN VERSION
+========================================= */
+
+.upload-file-hint {
+    color: var(--text-secondary);
+    display: block;
+    margin-top: 0.5rem;
+}
+
+/* Main Upload Button */
 
 .rocket-upload-btn {
     position: relative;
-    overflow: visible;
-    display: flex;
-    justify-content: center;
+    display: inline-flex;
     align-items: center;
-    min-height: 60px;
+    justify-content: center;
+    min-width: 250px;
+    min-height: 54px;
+    height: 54px;
+    padding: 0 25px;
+    overflow: visible;
+    border-radius: 50px;
     transition:
         width 0.5s ease,
         height 0.5s ease,
+        min-width 0.5s ease,
+        padding 0.5s ease,
         border-radius 0.5s ease,
-        background 0.5s ease;
+        background 0.4s ease;
 }
 
-/* Original Button Text */
+.rocket-upload-btn:disabled {
+    cursor: not-allowed;
+}
+
+/* Button Text */
 
 .rocket-button-text {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 0.3s ease, transform 0.3s ease;
     white-space: nowrap;
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* Rocket Container */
+/* Animation Container */
 
 .rocket-animation {
-    display: none;
     position: absolute;
-    width: 55px;
-    height: 55px;
-    justify-content: center;
+    inset: 0;
+    display: none;
     align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
 }
 
-/* Rocket SVG */
+/* Loading State */
 
-.rocket-image {
-    width: 43px;
-    height: 43px;
-    position: relative;
-    z-index: 5;
-    filter: drop-shadow(0 0 8px #60a5fa);
+.rocket-upload-btn.is-loading,
+.rocket-upload-btn.is-launching {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 82px;
+    min-width: 82px;
+    height: 82px;
+    min-height: 82px;
+    margin: 25px auto;
+    padding: 0;
+    background: #ffffff;
+    border: 3px solid #60a5fa;
+    border-radius: 50%;
+    box-shadow:
+        0 0 0 5px rgba(59, 130, 246, 0.10),
+        0 0 22px rgba(59, 130, 246, 0.25);
+    overflow: visible;
+    z-index: 2;
 }
 
-/* Circular Loading Ring */
+.rocket-upload-btn.is-loading .rocket-button-text,
+.rocket-upload-btn.is-launching .rocket-button-text {
+    opacity: 0;
+    transform: scale(0.5);
+    pointer-events: none;
+}
+
+.rocket-upload-btn.is-loading .rocket-animation,
+.rocket-upload-btn.is-launching .rocket-animation {
+    display: flex;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 1;
+}
+
+/* Loading Ring */
 
 .rocket-loading-ring {
     position: absolute;
-    width: 68px;
-    height: 68px;
-    border: 3px solid transparent;
-    border-top-color: #ffffff;
-    border-right-color: #93c5fd;
-    border-radius: 50%;
-    opacity: 0;
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }
 
-/* Rocket Flame */
+.rocket-loading-ring svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.rocket-ring-track,
+.rocket-ring-progress {
+    fill: none;
+    stroke-width: 3.5;
+}
+
+.rocket-ring-track {
+    stroke: #dbeafe;
+}
+
+.rocket-ring-progress {
+    stroke: #2563eb;
+    stroke-linecap: round;
+    stroke-dasharray: 115 277;
+}
+
+.rocket-upload-btn.is-loading .rocket-loading-ring svg {
+    animation: rocket-ring-spin 1.5s linear infinite;
+}
+
+/* Rocket Image */
+
+.rocket-image {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 5;
+    width: 38px;
+    height: 38px;
+    overflow: visible;
+    transform: translate(-50%, -50%);
+    transform-origin: center center;
+}
+
+.rocket-upload-btn.is-loading .rocket-image {
+    animation: rocket-vibration 0.17s ease-in-out infinite alternate;
+}
+
+/* Rocket Flames */
+
+.rocket-flame-outer,
+.rocket-flame-inner {
+    opacity: 0;
+    transform-origin: 32px 46px;
+}
+
+.rocket-upload-btn.is-loading .rocket-flame-outer,
+.rocket-upload-btn.is-loading .rocket-flame-inner {
+    animation: rocket-flame 0.15s ease-in-out infinite alternate;
+}
+
+/* Rocket Fire */
 
 .rocket-fire {
     position: absolute;
+    left: 50%;
+    top: 50%;
     width: 12px;
     height: 25px;
-    bottom: -10px;
-    left: 50%;
-    transform: translateX(-50%);
+    border-radius: 50% 50% 70% 70%;
     background: linear-gradient(
         to bottom,
         #fff7ae,
         #f97316,
         #ef4444
     );
-    border-radius: 50% 50% 70% 70%;
     filter: blur(2px);
     opacity: 0;
     z-index: 2;
+    transform: translateX(-50%);
 }
 
-/* Loading State */
+.rocket-upload-btn.is-launching .rocket-fire {
+    opacity: 1;
+    animation: rocket-fire-follow 1.3s ease-in forwards;
+}
 
-.rocket-upload-btn.is-loading {
-    width: 65px;
-    min-width: 65px;
-    height: 65px;
-    min-height: 65px;
-    padding: 0;
+.rocket-fire::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 15px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    background: #2563eb;
-    border-color: #2563eb;
-    cursor: wait;
+    background: radial-gradient(
+        circle,
+        rgba(148, 163, 184, 0.65),
+        rgba(203, 213, 225, 0.35) 45%,
+        transparent 75%
+    );
+    filter: blur(5px);
 }
 
-.rocket-upload-btn.is-loading .rocket-button-text {
-    opacity: 0;
-    transform: scale(0.5);
-    pointer-events: none;
+.rocket-upload-btn.is-launching .rocket-fire::after {
+    animation: rocket-smoke-trail 0.55s ease-out infinite;
 }
 
-.rocket-upload-btn.is-loading .rocket-animation {
-    display: flex;
+/* Straight Rocket Takeoff */
+
+.rocket-upload-btn.is-launching .rocket-image {
+    animation: rocket-straight-fly 1.3s ease-in forwards;
+    z-index: 5;
 }
 
-.rocket-upload-btn.is-loading .rocket-loading-ring {
-    opacity: 1;
-    animation: rocketRingSpin 1s linear infinite;
-}
+/* =========================================
+   KEYFRAMES
+========================================= */
 
-.rocket-upload-btn.is-loading .rocket-image {
-    animation: rocketVibration 0.16s ease-in-out infinite alternate;
-}
-
-.rocket-upload-btn.is-loading .rocket-fire {
-    opacity: 1;
-    animation: rocketFlame 0.2s ease-in-out infinite alternate;
-}
-
-/* Rocket Rotation */
-
-@keyframes rocketRingSpin {
+@keyframes rocket-ring-spin {
     from {
         transform: rotate(0deg);
     }
-
     to {
         transform: rotate(360deg);
     }
 }
 
-/* Rocket Vibration */
-
-@keyframes rocketVibration {
+@keyframes rocket-vibration {
     from {
-        transform: rotate(-5deg) translateX(-1px);
+        transform: translate(-50%, -50%) rotate(-5deg);
     }
-
     to {
-        transform: rotate(5deg) translateX(1px);
+        transform: translate(-50%, -50%) rotate(5deg);
     }
 }
 
-/* Flame Effect */
-
-@keyframes rocketFlame {
+@keyframes rocket-flame {
     from {
-        transform: translateX(-50%) scaleY(0.8);
-        opacity: 0.7;
-    }
-
-    to {
-        transform: translateX(-50%) scaleY(1.4);
-        opacity: 1;
-    }
-}
-
-/* Rocket Launch */
-
-.rocket-upload-btn.is-launching {
-    animation: rocketTakeoff 1.2s cubic-bezier(0.4, 0, 1, 1) forwards;
-    pointer-events: none;
-}
-
-@keyframes rocketTakeoff {
-    0% {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
-
-    30% {
-        transform: translateY(-35px) scale(1.1) rotate(-5deg);
-    }
-
-    65% {
-        transform: translateY(-180px) scale(0.9) rotate(-10deg);
+        transform: scaleY(0.8);
         opacity: 0.8;
     }
+    to {
+        transform: scaleY(1.25);
+        opacity: 1;
+    }
+}
 
+@keyframes rocket-straight-fly {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    20% {
+        transform: translate(-50%, -80%) rotate(0deg) scale(1);
+        opacity: 1;
+    }
     100% {
-        transform: translateY(-100vh) scale(0.3) rotate(-15deg);
+        transform: translate(-50%, -350px) rotate(0deg) scale(0.65);
         opacity: 0;
     }
 }
 
-/* Success Card */
+@keyframes rocket-fire-follow {
+    0% {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -350px);
+        opacity: 0;
+    }
+}
+
+@keyframes rocket-smoke-trail {
+    0% {
+        transform: translate(-50%, 0) scale(0.5);
+        opacity: 0.7;
+    }
+    100% {
+        transform: translate(-50%, -65px) scale(1.8);
+        opacity: 0;
+    }
+}
+
+/* =========================================
+   SUCCESS SCREEN
+========================================= */
 
 .upload-success-card {
     text-align: center;
     padding: 45px 25px;
-    animation: successCardEnter 0.7s ease both;
+    animation: upload-success-appear 0.55s ease both;
 }
 
-.success-check {
-    width: 85px;
-    height: 85px;
-    margin: 0 auto 22px;
+.upload-success-card .success-check {
+    width: 65px;
+    height: 65px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 50%;
     background: #dcfce7;
     color: #16a34a;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 40px;
+    font-size: 28px;
     box-shadow: 0 0 0 10px rgba(34, 197, 94, 0.08);
-    animation: successPop 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: success-pop 0.5s ease both;
 }
 
 .upload-success-card h2 {
@@ -1996,36 +2099,45 @@ button {
     margin-bottom: 25px;
 }
 
-@keyframes successPop {
-    from {
-        transform: scale(0) rotate(-90deg);
-        opacity: 0;
-    }
+/* Success Animations */
 
-    to {
-        transform: scale(1) rotate(0);
-        opacity: 1;
-    }
-}
-
-@keyframes successCardEnter {
+@keyframes upload-success-appear {
     from {
         opacity: 0;
-        transform: translateY(25px);
+        transform: translateY(18px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
     }
 }
 
-/* Mobile Responsive */
+@keyframes success-pop {
+    0% {
+        transform: scale(0.4);
+    }
+    70% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
 
 @media (max-width: 600px) {
-    .rocket-upload-btn.is-loading {
-        width: 65px;
-        min-width: 65px;
+    .rocket-upload-btn {
+        max-width: 100%;
+        font-size: 12px;
+    }
+
+    .rocket-upload-btn.is-loading,
+    .rocket-upload-btn.is-launching {
+        width: 82px;
+        min-width: 82px;
         margin-left: auto;
         margin-right: auto;
     }
@@ -2035,45 +2147,108 @@ button {
     }
 }
 
-/* Reduced Motion Accessibility */
+/* =========================================
+   REDUCED MOTION
+========================================= */
 
 @media (prefers-reduced-motion: reduce) {
+    .rocket-upload-btn.is-loading .rocket-loading-ring svg,
     .rocket-upload-btn.is-loading .rocket-image,
-    .rocket-upload-btn.is-loading .rocket-loading-ring,
-    .rocket-upload-btn.is-loading .rocket-fire {
-        animation-duration: 1.5s;
+    .rocket-upload-btn.is-loading .rocket-flame-outer,
+    .rocket-upload-btn.is-loading .rocket-flame-inner,
+    .rocket-upload-btn.is-launching .rocket-image {
+        animation: none !important;
     }
 }
 
 
-/* Keep rocket visible during takeoff */
+/* =====================================
+   ROCKET FLAME + SMOKE FIX
+   ADD AT THE VERY END OF CSS
+===================================== */
 
-.rocket-upload-btn.is-launching {
-    width: 65px;
-    min-width: 65px;
-    height: 65px;
-    min-height: 65px;
-    padding: 0;
-    border-radius: 50%;
-    background: #2563eb;
-    border-color: #2563eb;
-}
-
-.rocket-upload-btn.is-launching .rocket-button-text {
+/* Rocket flame position */
+.rocket-fire {
+    position: absolute !important;
+    left: 50% !important;
+    top: calc(50% + 17px) !important;
+    width: 13px !important;
+    height: 28px !important;
+    z-index: 4 !important;
     opacity: 0;
+    border-radius: 50% 50% 65% 65%;
+    background: linear-gradient(
+        to bottom,
+        #fff9c4 0%,
+        #fbbf24 30%,
+        #f97316 65%,
+        #ef4444 100%
+    );
+    filter: blur(1px);
+    transform: translateX(-50%);
+    transform-origin: top center;
 }
 
-.rocket-upload-btn.is-launching .rocket-animation {
-    display: flex;
-}
-
-.rocket-upload-btn.is-launching .rocket-loading-ring {
-    opacity: 1;
-    animation: rocketRingSpin 0.6s linear infinite;
-}
-
+/* Flame visible during launch */
 .rocket-upload-btn.is-launching .rocket-fire {
-    opacity: 1;
-    animation: rocketFlame 0.15s ease-in-out infinite alternate;
+    opacity: 1 !important;
+    animation: rocket-flame-launch-fix 1.3s ease-in forwards !important;
 }
+
+/* Smoke behind the rocket */
+.rocket-fire::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 16px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: radial-gradient(
+        circle,
+        rgba(148, 163, 184, 0.8) 0%,
+        rgba(203, 213, 225, 0.55) 40%,
+        rgba(226, 232, 240, 0.2) 65%,
+        transparent 75%
+    );
+    filter: blur(5px);
+    opacity: 0;
+    transform: translateX(-50%);
+}
+
+/* Smoke animation */
+.rocket-upload-btn.is-launching .rocket-fire::after {
+    animation: rocket-smoke-launch-fix 0.45s ease-out infinite !important;
+}
+
+/* Flame follows rocket */
+@keyframes rocket-flame-launch-fix {
+    0% {
+        transform: translate(-50%, 0) scaleY(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -350px) scaleY(0.7);
+        opacity: 0;
+    }
+}
+
+/* Smoke expands DOWNWARD behind rocket */
+@keyframes rocket-smoke-launch-fix {
+    0% {
+        transform: translate(-50%, 0) scale(0.5);
+        opacity: 0.85;
+    }
+    100% {
+        transform: translate(-50%, 85px) scale(2.2);
+        opacity: 0;
+    }
+}
+
+/* Keep rocket above flame and smoke */
+.rocket-upload-btn.is-launching .rocket-image {
+    z-index: 6 !important;
+}
+
+
 

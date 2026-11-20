@@ -102,7 +102,7 @@ export default function App() {
       await loadHistory();
       // Keep the just-completed result selected, even if history refresh returns older records first.
       setAnalysisResult(response.analysis || null);
-      setActiveTab("dashboard");
+      
     } catch (error) {
       setApiError(error.message || "Failed to upload or analyze evidence.");
       throw error;
